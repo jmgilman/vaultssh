@@ -1,0 +1,23 @@
+# Example config - place this in ~/.vssh to automatically use it
+#
+# The authentication names are the same as the default mount point for the 
+# associated engine. For example, "approle" for AppRole and "oidc" for OIDC. 
+# Not all engines are supported, only the ones shown below. You don't have to
+# configure each one and may only configure the one you set to the default. 
+
+
+auth = "oidc"                  # default authentication method to use
+identity = "~/.ssh/id_rsa"     # ssh key-pair to sign and use
+mount = "ssh"                  # mount path for ssh backend
+persist = true                 # persist acquired tokens to ~/.vault-token
+role = "myrole"                # vault role account to sign with
+server = "https://vault:8200"  # address of vault server
+
+[approle]                      # name of auth method to configure
+role_id = "myrole"             # default values for auth method
+
+[oidc]
+role = "admin
+
+[userpass]
+username = "myuser"

@@ -47,8 +47,9 @@ pub struct Opts {
     /// vault token to use for authentication (default: $VAULT_TOKEN)
     #[clap(short = 't', long = "token")]
     token: Option<String>,
-    /// SSH host
+    /// ssh host
     host: String,
+    /// additional arguments to pass to ssh
     args: Vec<String>,
 }
 
