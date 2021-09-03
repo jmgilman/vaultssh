@@ -14,14 +14,14 @@
 
 > A small CLI wrapper for authenticating with SSH keys from [Hashicorp Vault][1]
 
-vssh is a small CLI wrapper around the Vault client for automatically fetching 
-and using signed SSH certificates when remoting into a host. It wraps the ssh 
-process and is therefore compatible with all standard ssh flags.
+vssh is a small CLI wrapper for automatically fetching and using signed SSH 
+certificates when remoting into a host. It wraps the ssh process and is 
+therefore compatible with all standard ssh flags.
 
 ## Installation
 
 ```
-cargo install vssh
+cargo install vaultssh
 ```
 
 ## Usage
