@@ -1,14 +1,14 @@
 # vssh
 
 <p align="center">
-    <a href="https://github.com/jmgilman/vssh/actions/workflows/validate.yml">
-        <img src="https://github.com/jmgilman/vssh/actions/workflows/validate.yml/badge.svg"/>
-    </a>
     <a href="https://crates.io/crates/vaultssh">
         <img src="https://img.shields.io/crates/v/vaultssh">
     </a>
     <a href="https://docs.rs/vaultssh">
         <img src="https://img.shields.io/docsrs/vaultssh" />
+    </a>
+    <a href="https://github.com/jmgilman/vssh/actions/workflows/ci.yml">
+        <img src="https://github.com/jmgilman/vssh/actions/workflows/ci.yml/badge.svg"/>
     </a>
 </p>
 
