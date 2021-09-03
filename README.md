@@ -4,11 +4,11 @@
     <a href="https://github.com/jmgilman/vssh/actions/workflows/validate.yml">
         <img src="https://github.com/jmgilman/vssh/actions/workflows/validate.yml/badge.svg"/>
     </a>
-    <a href="https://crates.io/crates/vssh">
-        <img src="https://img.shields.io/crates/v/vssh">
+    <a href="https://crates.io/crates/vaultssh">
+        <img src="https://img.shields.io/crates/v/vaultssh">
     </a>
-    <a href="https://docs.rs/vssh">
-        <img src="https://img.shields.io/docsrs/vssh" />
+    <a href="https://docs.rs/vaultssh">
+        <img src="https://img.shields.io/docsrs/vaultssh" />
     </a>
 </p>
 

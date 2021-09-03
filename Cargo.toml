@@ -1,5 +1,5 @@
 [package]
-name = "vssh"
+name = "vaultssh"
 version = "0.1.0"
 authors = ["Joshua Gilman <joshuagilman@gmail.com>"]
 description = "A small CLI wrapper for authenticating with SSH keys from Hashicorp Vault."
