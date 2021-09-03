@@ -1,0 +1,1 @@
+> A small CLI wrapper for authenticating with SSH keys from Hashicorp Vault
