@@ -126,6 +126,45 @@ pub fn merge(opts: Opts, config: Config) -> Result<Config> {
     })
 }
 
+#[test]
+fn test_merge() {
+    let config = Config {
+        approle: None,
+        auth: Some(Method::APPROLE),
+        identity: Some(String::from("l3")),
+        mount: None,
+        oidc: None,
+        persist: Some(true),
+        role: Some(String::from("l3")),
+        server: Some(String::from("l3")),
+        token: Some(String::from("l3")),
+        userpass: None,
+    };
+    let opts = crate::Opts {
+        auth: Some(Method::USERPASS),
+        config: Some(String::from("l1")),
+        identity: Some(String::from("l1")),
+        mount: None,
+        persist: Some(false),
+        role: None,
+        server: None,
+        token: Some(String::from("l1")),
+        host: String::from("l1"),
+        args: vec![String::from("l1")],
+    };
+    std::env::set_var("VAULT_ADDR", "l2");
+    std::env::set_var("VAULT_TOKEN", "l2");
+
+    let res = merge(opts, config);
+    assert!(res.is_ok());
+    let res = res.unwrap();
+    assert_eq!(res.auth, Some(Method::USERPASS));
+    assert_eq!(res.server, Some(String::from("l2")));
+    assert_eq!(res.role, Some(String::from("l3")));
+    assert_eq!(res.token, Some(String::from("l1")));
+    assert_eq!(res.mount, Some(DEFAULTS["mount"].to_string()))
+}
+
 /// Merges options in the order of CLI > Env > Config > default.
 ///
 /// This function will fail if an option is required but no value is found.
@@ -158,4 +197,44 @@ fn merge_option<T>(
             },
         },
     }
+}
+
+#[test]
+fn test_merge_option() {
+    let res = merge_option(
+        "test",
+        Some("test"),
+        Some("test1"),
+        Some("test2"),
+        Some("test3"),
+        false,
+    );
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), Some("test"));
+
+    let res = merge_option(
+        "test",
+        None,
+        Some("test1"),
+        Some("test2"),
+        Some("test3"),
+        false,
+    );
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), Some("test1"));
+
+    let res = merge_option("test", None, None, Some("test2"), Some("test3"), false);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), Some("test2"));
+
+    let res = merge_option("test", None, None, None, Some("test3"), false);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), Some("test3"));
+
+    let res = merge_option::<&str>("test", None, None, None, None, false);
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), None);
+
+    let res = merge_option::<&str>("test", None, None, None, None, true);
+    assert!(res.is_err());
 }

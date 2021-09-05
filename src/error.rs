@@ -55,3 +55,15 @@ pub fn try_api_error(error: &anyhow::Error) -> Option<anyhow::Error> {
         _ => None,
     }
 }
+
+#[test]
+fn test_try_api_error() {
+    let err = anyhow! { vaultrs::error::ClientError::ResponseWrapError };
+    let res = try_api_error(&err);
+    assert!(res.is_none());
+
+    let message = String::from("test");
+    let err = anyhow! { vaultrs::error::ClientError::APIError { code: 400, errors: vec![message]} };
+    let res = try_api_error(&err);
+    assert!(res.is_some());
+}

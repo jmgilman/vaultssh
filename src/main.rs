@@ -3,11 +3,13 @@ mod display;
 mod error;
 mod login;
 mod ssh;
+#[cfg(test)]
+mod testing;
 
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::error::ClientError;
+use crate::{display::Console, error::ClientError};
 use anyhow::{anyhow, Result};
 use clap::Clap;
 use config::Config;
@@ -105,6 +107,7 @@ async fn check_status(client: &VaultClient) -> Result<()> {
 /// Generates a signed SSH public key certificate and writes it to the
 /// filesystem.
 async fn gen_cert(config: &Config) -> Result<()> {
+    let console = display::CLIConsole::new();
     let identity = config.identity.as_ref().unwrap();
     let mount = config.mount.as_ref().unwrap();
     let role = config.role.as_ref().unwrap();
@@ -130,13 +133,13 @@ async fn gen_cert(config: &Config) -> Result<()> {
     check_status(&client).await?;
 
     // Check if login is required
-    let res = crate::login::handle_login(&mut client, config).await;
+    let res = crate::login::handle_login(&mut client, config, &console).await;
     if let Err(e) = res {
         return Err(login::handle_login_error(e).context("Login failed"));
     }
 
     // Create certificate
-    display::print_neutral("Generating new certificate...");
+    console.neutral("Generating new certificate...");
     let contents = load_pub(identity)?;
 
     let res = ssh::sign(&client, mount, role, &contents).await;
@@ -150,7 +153,7 @@ async fn gen_cert(config: &Config) -> Result<()> {
     let path_str = path.to_string_lossy().to_string();
     write_key(path, &res?)?;
 
-    display::print_success(format!("Saved certificate to {}", path_str).as_str());
+    console.success(format!("Saved certificate to {}", path_str).as_str());
 
     Ok(())
 }

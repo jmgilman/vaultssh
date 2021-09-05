@@ -16,6 +16,7 @@ clap = { git = "https://github.com/clap-rs/clap/" }
 console = "0.14.1"
 dialoguer = "0.8.0"
 dirs = "3.0.2"
+mockall = "0.10.2"
 phf = { version = "0.10.0", features = ["macros"] }
 serde = "1.0.130"
 shellexpand = "2.1.0"
@@ -23,5 +24,10 @@ sshkeys = "0.3.1"
 thiserror = "1.0.28"
 tokio = { version = "1.10.1", features = ["full"] }
 toml = "0.5.8"
-vaultrs = { version = "0.4.0", features = ["oidc"] }
+vaultrs = { path = "../vaultrs", features = ["oidc"] }
 webbrowser = "0.5.5"
+
+[dev-dependencies]
+async-trait = "0.1.51"
+mockall = "0.10.2"
+rustify = "0.4.3"
