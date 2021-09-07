@@ -110,7 +110,7 @@ impl<C: Client> TokenFileHandler for C {
 /// from a list. Further details are collected depending on the method selected
 /// and then finally a login attempt is made. If successful, the given client
 /// can be assumed to have a valid token.
-pub async fn handle_login(
+pub async fn login(
     client: &mut impl Client,
     config: &Config,
     console: &impl display::Console,
@@ -124,6 +124,7 @@ pub async fn handle_login(
         Some(m) => m.clone(),
         None => console.input("Mount", Some(login::method::default_mount(&method)), None)?,
     };
+    println!("{}", mount);
 
     // Perform login
     match method {
@@ -134,7 +135,7 @@ pub async fn handle_login(
     }
 
     // Persist token to ~/.vault-token if requested by user
-    if config.persist.unwrap() {
+    if config.persist.unwrap_or(false) {
         client.token_to_file()?;
     }
 
@@ -198,6 +199,42 @@ async fn login_userpass(
 #[cfg(test)]
 mod tests {
     use super::{choose_method, login, Config};
+
+    #[tokio::test]
+    async fn test_login() {
+        let mut client = crate::testing::MockClient::new();
+        let mut config = Config::default();
+        let mut console = crate::testing::console();
+
+        console
+            .expect_select()
+            .returning(|_, _: &[login::Method], _| Ok(Some(0)))
+            .withf(|prompt, _, _| prompt == "Please select a login option below");
+        client
+            .expect_login()
+            .returning(|_, _: &login::AppRoleLogin| Ok(()))
+            .withf(|mount, login| {
+                mount == "input" && login.role_id == "input" && login.secret_id == "password"
+            });
+        let res = super::login(&mut client, &config, &console).await;
+        assert!(res.is_ok());
+
+        // Test with default
+        let console = crate::testing::console();
+        config.auth = Some(login::Method::APPROLE);
+        config.auth_mount = Some(String::from("mount"));
+        config.approle = Some(crate::config::AppRoleConfig {
+            role_id: String::from("role"),
+        });
+        client
+            .expect_login()
+            .returning(|_, _: &login::AppRoleLogin| Ok(()))
+            .withf(|mount, login| {
+                mount == "mount" && login.role_id == "role" && login.secret_id == "password"
+            });
+        let res = super::login(&mut client, &config, &console).await;
+        assert!(res.is_ok());
+    }
 
     #[tokio::test]
     async fn test_choose_method() {

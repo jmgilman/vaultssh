@@ -139,7 +139,7 @@ async fn gen_cert(config: &Config) -> Result<()> {
     if client.lookup().await.is_err() {
         console.error("No valid token found.");
 
-        if let Err(e) = crate::login::handle_login(&mut client, config, &console).await {
+        if let Err(e) = crate::login::login(&mut client, config, &console).await {
             return Err(error::handle_login_error(e).context("Login failed"));
         }
 
