@@ -15,6 +15,7 @@ pub static DEFAULTS: phf::Map<&'static str, &'static str> = phf_map! {
 pub struct Config {
     pub approle: Option<AppRoleConfig>,
     pub auth: Option<Method>,
+    pub auth_mount: Option<String>,
     pub identity: Option<String>,
     pub mount: Option<String>,
     pub oidc: Option<OIDCConfig>,
@@ -73,6 +74,14 @@ pub fn merge(opts: Opts, config: Config) -> Result<Config> {
     Ok(Config {
         approle: config.approle,
         auth: merge_option("auth_method", opts.auth, None, config.auth, None, false)?,
+        auth_mount: merge_option(
+            "auth_mount",
+            opts.auth_mount,
+            None,
+            config.auth_mount,
+            None,
+            false,
+        )?,
         identity: merge_option(
             "identity",
             opts.identity,
@@ -131,6 +140,7 @@ fn test_merge() {
     let config = Config {
         approle: None,
         auth: Some(Method::APPROLE),
+        auth_mount: Some(String::from("l3")),
         identity: Some(String::from("l3")),
         mount: None,
         oidc: None,
@@ -142,6 +152,7 @@ fn test_merge() {
     };
     let opts = crate::Opts {
         auth: Some(Method::USERPASS),
+        auth_mount: Some(String::from("l1")),
         config: Some(String::from("l1")),
         identity: Some(String::from("l1")),
         mount: None,

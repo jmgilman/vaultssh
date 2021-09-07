@@ -56,14 +56,70 @@ pub fn try_api_error(error: &anyhow::Error) -> Option<anyhow::Error> {
     }
 }
 
-#[test]
-fn test_try_api_error() {
-    let err = anyhow! { vaultrs::error::ClientError::ResponseWrapError };
-    let res = try_api_error(&err);
-    assert!(res.is_none());
+/// Attempts to provide greater clarity about certain errors.
+///
+/// For example, it's confusing when a missing token error is returned when
+/// attempting to login. In reality, this translates to there not being any auth
+/// engine mounted at the requested path.
+pub fn handle_login_error(error: anyhow::Error) -> anyhow::Error {
+    if let Some(e) = try_api_error(&error) {
+        match e.downcast_ref::<ClientError>() {
+            Some(ClientError::VaultAPIError { message }) => {
+                println!("YO!");
+                if message == "missing client token" {
+                    anyhow! {"There was no auth engine mounted at the given mount point."}
+                } else {
+                    error
+                }
+            }
+            _ => error,
+        }
+    } else {
+        error
+    }
+}
 
-    let message = String::from("test");
-    let err = anyhow! { vaultrs::error::ClientError::APIError { code: 400, errors: vec![message]} };
-    let res = try_api_error(&err);
-    assert!(res.is_some());
+#[cfg(test)]
+mod tests {
+    use super::ClientError;
+    use anyhow::anyhow;
+
+    #[test]
+    fn test_try_api_error() {
+        let err = anyhow! { vaultrs::error::ClientError::ResponseWrapError };
+        let res = super::try_api_error(&err);
+        assert!(res.is_none());
+
+        let message = String::from("test");
+        let err =
+            anyhow! { vaultrs::error::ClientError::APIError { code: 400, errors: vec![message]} };
+        let res = super::try_api_error(&err);
+        assert!(res.is_some());
+    }
+
+    #[test]
+    fn test_handle_login_error() {
+        let err = anyhow! { ClientError::UnsupportedLogin };
+        let res = super::handle_login_error(err);
+        let res = res.downcast_ref::<ClientError>();
+        assert!(matches! {
+            res,
+            Some(ClientError::UnsupportedLogin)
+        });
+
+        let err = anyhow! { ClientError::VaultAPIError{ message: String::from("test")} };
+        let res = super::handle_login_error(err);
+        let res = res.downcast_ref::<ClientError>();
+        assert!(matches! {
+            res,
+            Some(ClientError::VaultAPIError{ .. })
+        });
+
+        let err = anyhow! { vaultrs::error::ClientError::APIError { code: 400, errors: vec![String::from("missing client token")] } };
+        let res = super::handle_login_error(err);
+        assert_eq!(
+            res.to_string(),
+            "There was no auth engine mounted at the given mount point."
+        );
+    }
 }

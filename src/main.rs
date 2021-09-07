@@ -9,7 +9,7 @@ mod testing;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::{display::Console, error::ClientError};
+use crate::{display::Console, error::ClientError, login::TokenFileHandler};
 use anyhow::{anyhow, Result};
 use clap::Clap;
 use config::Config;
@@ -28,6 +28,9 @@ pub struct Opts {
     /// default authentication method to use
     #[clap(short = 'a', long = "auth-method")]
     auth: Option<Method>,
+    /// default authentication mount to use
+    #[clap(long = "auth-mount")]
+    auth_mount: Option<String>,
     /// config file (default: $HOME/.vssh)
     #[clap(short = 'c', long = "config")]
     config: Option<String>,
@@ -115,7 +118,7 @@ async fn gen_cert(config: &Config) -> Result<()> {
 
     // Attempt to load token from file if needed
     let token = match config.token.is_none() {
-        true => VaultClientSettingsBuilder::token_from_file().unwrap_or_else(|_| "".to_string()),
+        true => VaultClient::token_from_file().unwrap_or_else(|_| "".to_string()),
         false => config.token.as_ref().unwrap().clone(),
     };
 
@@ -133,10 +136,17 @@ async fn gen_cert(config: &Config) -> Result<()> {
     check_status(&client).await?;
 
     // Check if login is required
-    let res = crate::login::handle_login(&mut client, config, &console).await;
-    if let Err(e) = res {
-        return Err(login::handle_login_error(e).context("Login failed"));
+    if client.lookup().await.is_err() {
+        console.error("No valid token found.");
+
+        if let Err(e) = crate::login::handle_login(&mut client, config, &console).await {
+            return Err(error::handle_login_error(e).context("Login failed"));
+        }
+
+        console.success("Login success!");
     }
+
+    console.success("Valid token found.");
 
     // Create certificate
     console.neutral("Generating new certificate...");
