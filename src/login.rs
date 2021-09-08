@@ -44,6 +44,7 @@ impl LoginPrompt for login::UserpassLogin {
         };
         let password = console.password("Password")?;
 
+        println!("{} - {}", username, password);
         Ok(login::UserpassLogin { username, password })
     }
 }

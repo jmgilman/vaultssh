@@ -65,7 +65,6 @@ pub fn handle_login_error(error: anyhow::Error) -> anyhow::Error {
     if let Some(e) = try_api_error(&error) {
         match e.downcast_ref::<ClientError>() {
             Some(ClientError::VaultAPIError { message }) => {
-                println!("YO!");
                 if message == "missing client token" {
                     anyhow! {"There was no auth engine mounted at the given mount point."}
                 } else {

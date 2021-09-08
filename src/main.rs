@@ -31,6 +31,9 @@ pub struct Opts {
     /// default authentication mount to use
     #[clap(long = "auth-mount")]
     auth_mount: Option<String>,
+    /// disables terminal effects
+    #[clap(short = 'b', long = "basic")]
+    basic: bool,
     /// config file (default: $HOME/.vssh)
     #[clap(short = 'c', long = "config")]
     config: Option<String>,
@@ -42,7 +45,7 @@ pub struct Opts {
     mount: Option<String>,
     /// persist acquired tokens to ~/.vault-token
     #[clap(short = 'p', long = "persist")]
-    persist: Option<bool>,
+    persist: bool,
     /// vault role account to sign with (default: "default")
     #[clap(short = 'r', long = "role")]
     role: Option<String>,
@@ -80,7 +83,17 @@ async fn main() -> Result<()> {
     };
 
     if needs_signing {
-        gen_cert(&config).await?;
+        println!("{:#?}", config.persist);
+        match config.basic {
+            Some(true) => {
+                println!("Basic");
+                gen_cert(&config, &display::VanillaConsole::new()).await?;
+            }
+            _ => {
+                println!("Not basic");
+                gen_cert(&config, &display::CLIConsole::new()).await?;
+            }
+        }
     }
 
     // Run SSH
@@ -109,8 +122,7 @@ async fn check_status(client: &VaultClient) -> Result<()> {
 
 /// Generates a signed SSH public key certificate and writes it to the
 /// filesystem.
-async fn gen_cert(config: &Config) -> Result<()> {
-    let console = display::CLIConsole::new();
+async fn gen_cert(config: &Config, console: &impl Console) -> Result<()> {
     let identity = config.identity.as_ref().unwrap();
     let mount = config.mount.as_ref().unwrap();
     let role = config.role.as_ref().unwrap();
@@ -139,7 +151,8 @@ async fn gen_cert(config: &Config) -> Result<()> {
     if client.lookup().await.is_err() {
         console.error("No valid token found.");
 
-        if let Err(e) = crate::login::login(&mut client, config, &console).await {
+        if let Err(e) = crate::login::login(&mut client, config, console).await {
+            println!("{:#?}", e);
             return Err(error::handle_login_error(e).context("Login failed"));
         }
 

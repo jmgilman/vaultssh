@@ -18,9 +18,11 @@ dialoguer = "0.8.0"
 dirs = "3.0.2"
 mockall = "0.10.2"
 phf = { version = "0.10.0", features = ["macros"] }
+rpassword = "5.0.1"
 serde = "1.0.130"
 shellexpand = "2.1.0"
 sshkeys = "0.3.1"
+text_io = "0.1.9"
 thiserror = "1.0.28"
 tokio = { version = "1.10.1", features = ["full"] }
 toml = "0.5.8"
@@ -28,6 +30,10 @@ vaultrs = { path = "../vaultrs", features = ["oidc"] }
 webbrowser = "0.5.5"
 
 [dev-dependencies]
+assert_cmd = "2.0.1"
+assert_fs = "1.0.5"
 async-trait = "0.1.51"
 mockall = "0.10.2"
+predicates = "2.0.2"
 rustify = "0.4.3"
+testcontainers = "0.12.0"
