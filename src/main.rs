@@ -16,6 +16,7 @@ use config::Config;
 use vaultrs::client::{Client, VaultClient, VaultClientSettingsBuilder};
 use vaultrs_login::method::Method;
 
+/// Contains all CLI options available for vaultssh
 #[derive(Clap, Default)]
 #[clap(
     version = "0.1",
@@ -203,14 +204,17 @@ fn load_config(path: Option<String>) -> Result<Config> {
     }
 }
 
+/// Returns the signed certificate associated with the given private key
 fn load_cert(path: &str) -> Result<String> {
     load_key(ssh::cert_from_private(path))
 }
 
+/// Returns the public key associated with the given private key
 fn load_pub(path: &str) -> Result<String> {
     load_key(ssh::public_from_private(path))
 }
 
+/// Returns the contents of the SSH key at the given path
 fn load_key(path: PathBuf) -> Result<String> {
     // Check if a certificate is present
     let path_str = path.to_string_lossy().to_string();
@@ -223,6 +227,7 @@ fn load_key(path: PathBuf) -> Result<String> {
         .map_err(|e| anyhow! { ClientError::FileReadError { source: e, path: path_str}})
 }
 
+/// Writes the given SSH key contents to the given path
 fn write_key(path: PathBuf, contents: &str) -> Result<()> {
     let path_str = path.to_string_lossy().to_string();
     std::fs::write(path, contents)

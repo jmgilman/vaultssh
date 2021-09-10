@@ -7,6 +7,7 @@ use dialoguer::{theme::ColorfulTheme, Input, Password, Select};
 use mockall::{predicate::*, *};
 use text_io::read;
 
+/// Contains all possible styles a CLI message can use
 enum MessageStyle {
     Error,
     Neutral,
@@ -43,6 +44,7 @@ pub trait Console {
     fn success(&self, message: &str);
 }
 
+/// A "pretty" implementation of [Console]
 pub struct CLIConsole {
     pub error: String,
     pub neutral: String,
@@ -115,6 +117,7 @@ impl CLIConsole {
         }
     }
 
+    /// Prints a message to the console using the given style
     fn print(&self, message: &str, style: MessageStyle) {
         match style {
             MessageStyle::Error => {
@@ -129,11 +132,14 @@ impl CLIConsole {
         }
     }
 
+    /// Produces a [StyledObject][console::StyledObject] from a string message
+    /// and style string
     fn style<'a>(&self, message: &'a str, style: &str) -> console::StyledObject<&'a str> {
         Style::from_dotted_str(style).apply_to(message)
     }
 }
 
+/// A "vanilla" implementation of [Console]
 pub struct VanillaConsole;
 impl Console for VanillaConsole {
     fn browser(&self, url: &str) {

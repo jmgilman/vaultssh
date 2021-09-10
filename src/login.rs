@@ -9,6 +9,7 @@ use vaultrs_login::{
     LoginClient,
 };
 
+/// Provides a method for generating login methods from a CLI prompt
 pub trait LoginPrompt: Sized {
     fn prompt(console: &impl display::Console, config: &Config) -> Result<Self>;
 }
@@ -52,6 +53,7 @@ impl LoginPrompt for UserpassLogin {
     }
 }
 
+/// Provides an interface for persisting tokens to a filesystem
 pub trait TokenFileHandler {
     /// Reads a token from the default location and returns it
     fn token_from_file() -> Result<String>;
