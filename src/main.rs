@@ -78,7 +78,7 @@ async fn main() -> Result<()> {
             _ => return Err(e),
         }
     } else {
-        !crate::ssh::is_valid(cert.unwrap().as_str())?
+        !ssh::is_valid(&ssh::str_to_cert(cert.unwrap().as_str())?)
     };
 
     if needs_signing {

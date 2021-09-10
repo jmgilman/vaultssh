@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use mockall::mock;
 use rustify::clients::reqwest::Client as HTTPClient;
+use sshkeys::{Certificate, KeyType, PublicKey, PublicKeyKind, RsaPublicKey};
 use vaultrs::api::EndpointMiddleware;
 use vaultrs::client::{Client, VaultClientSettings};
 use vaultrs::error::ClientError;
@@ -46,4 +49,56 @@ pub fn console() -> crate::display::MockConsole {
         .expect_select()
         .returning(|_, _: &[Method], _| Ok(Some(0)));
     console
+}
+
+pub fn fake_cert(before: u64) -> Certificate {
+    Certificate {
+        key_type: KeyType {
+            name: "",
+            is_cert: true,
+            short_name: "",
+            kind: sshkeys::KeyTypeKind::Rsa,
+            plain: "",
+        },
+        nonce: Vec::new(),
+        key: PublicKey {
+            key_type: KeyType {
+                name: "",
+                is_cert: true,
+                short_name: "",
+                kind: sshkeys::KeyTypeKind::Rsa,
+                plain: "",
+            },
+            kind: PublicKeyKind::Rsa(RsaPublicKey {
+                e: Vec::new(),
+                n: Vec::new(),
+            }),
+            comment: None,
+        },
+        serial: 0,
+        cert_type: sshkeys::CertType::User,
+        key_id: String::from(""),
+        valid_principals: Vec::new(),
+        valid_after: 0,
+        valid_before: before,
+        critical_options: HashMap::new(),
+        extensions: HashMap::new(),
+        reserved: Vec::new(),
+        signature_key: PublicKey {
+            key_type: KeyType {
+                name: "",
+                is_cert: true,
+                short_name: "",
+                kind: sshkeys::KeyTypeKind::Rsa,
+                plain: "",
+            },
+            kind: PublicKeyKind::Rsa(RsaPublicKey {
+                e: Vec::new(),
+                n: Vec::new(),
+            }),
+            comment: None,
+        },
+        signature: Vec::new(),
+        comment: None,
+    }
 }
