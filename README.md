@@ -1,4 +1,4 @@
-# vssh
+# vaultssh
 
 <p align="center">
     <a href="https://crates.io/crates/vaultssh">
@@ -7,14 +7,14 @@
     <a href="https://docs.rs/vaultssh">
         <img src="https://img.shields.io/docsrs/vaultssh" />
     </a>
-    <a href="https://github.com/jmgilman/vssh/actions/workflows/ci.yml">
-        <img src="https://github.com/jmgilman/vssh/actions/workflows/ci.yml/badge.svg"/>
+    <a href="https://github.com/jmgilman/vaultssh/actions/workflows/ci.yml">
+        <img src="https://github.com/jmgilman/vaultssh/actions/workflows/ci.yml/badge.svg"/>
     </a>
 </p>
 
 > A small CLI wrapper for authenticating with SSH keys from [Hashicorp Vault][1]
 
-vssh is a small CLI wrapper for automatically fetching and using signed SSH 
+vaultssh is a small CLI wrapper for automatically fetching and using signed SSH 
 certificates when remoting into a host. It wraps the ssh process and is 
 therefore compatible with all standard ssh flags.
 
@@ -29,30 +29,32 @@ cargo install vaultssh
 ```
 $> vssh --help
 
-vssh 0.1
+vaultssh 0.1.0
 
-Joshua Gilman
+A small CLI wrapper for authenticating with SSH keys from Hashicorp Vault
 
 USAGE:
-    vssh [OPTIONS] <HOST> [ARGS]...
+    vssh [FLAGS] [OPTIONS] <HOST> [ARGS]...
 
 ARGS:
     <HOST>       ssh host
     <ARGS>...    additional arguments to pass to ssh
 
 FLAGS:
+    -b, --basic      disables terminal effects
     -h, --help       Print help information
+    -p, --persist    persist acquired tokens to ~/.vault-token
     -V, --version    Print version information
 
 OPTIONS:
-    -a, --auth-method <AUTH>     default authentication method to use
-    -c, --config <CONFIG>        config file (default: $HOME/.vssh)
-    -i, --identity <IDENTITY>    ssh key-pair to sign and use (default: $HOME/.ssh/id_rsa)
-    -m, --mount <MOUNT>          mount path for ssh backend (default: ssh)
-    -p, --persist <PERSIST>      persist acquired tokens to ~/.vault-token
-    -r, --role <ROLE>            vault role account to sign with (default: "default")
-    -s, --server <SERVER>        address of vault server (default: $VAULT_ADDR)
-    -t, --token <TOKEN>          vault token to use for authentication (default: $VAULT_TOKEN)
+    -a, --auth-method <AUTH>         default authentication method to use
+        --auth-mount <AUTH_MOUNT>    default authentication mount to use
+    -c, --config <CONFIG>            config file (default: $HOME/.vssh)
+    -i, --identity <IDENTITY>        ssh key-pair to sign and use (default: $HOME/.ssh/id_rsa)
+    -m, --mount <MOUNT>              mount path for ssh backend (default: ssh)
+    -r, --role <ROLE>                vault role account to sign with (default: "default")
+    -s, --server <SERVER>            address of vault server (default: $VAULT_ADDR)
+    -t, --token <TOKEN>              vault token to use for authentication (default: $VAULT_TOKEN)
 ```
 
 ## Configuration
@@ -114,12 +116,16 @@ authentication method will pre-fill the login prompt to make logging in easier.
 However, all other auth methods are still available if desired (i.e. setting
 defaults does not skip any prompts). 
 
-[1]: https://www.vaultproject.io/
-
 ## Contributing
 
-1. Fork it (https://github.com/jmgilman/vssh/fork)
+Check out the [issues][2] for items neeeding attention or submit your own and 
+then:
+
+1. Fork it (https://github.com/jmgilman/vaultssh/fork)
 2. Create your feature branch (git checkout -b feature/fooBar)
 3. Commit your changes (git commit -am 'Add some fooBar')
 4. Push to the branch (git push origin feature/fooBar)
 5. Create a new Pull Request
+
+[1]: https://www.vaultproject.io/
+[2]: https://github.com/jmgilman/vaultssh/issues
