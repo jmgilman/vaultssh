@@ -13,7 +13,7 @@ pub async fn sign(client: &VaultClient, mount: &str, role: &str, contents: &str)
 }
 
 /// Validates a SSH certificate is not expired.
-pub fn validate(contents: &str) -> Result<bool> {
+pub fn is_valid(contents: &str) -> Result<bool> {
     let cert =
         Certificate::from_string(contents).map_err(|e| ClientError::SSHParseError { source: e })?;
     let current = std::time::SystemTime::now()
@@ -21,7 +21,9 @@ pub fn validate(contents: &str) -> Result<bool> {
         .unwrap()
         .as_secs();
 
-    if current > cert.valid_before {
+    println!("Current: {:#?}", current);
+    println!("Valid before: {:#?}", cert.valid_before);
+    if current < cert.valid_before {
         Ok(true)
     } else {
         Ok(false)

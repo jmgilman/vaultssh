@@ -26,8 +26,8 @@ text_io = "0.1.9"
 thiserror = "1.0.28"
 tokio = { version = "1.11.0", features = ["full"] }
 toml = "0.5.8"
-vaultrs = "0.5.0"
-vaultrs-login = { version = "0.1.0", features = ["oidc"] }
+vaultrs = { version = "0.5.0", path = "../vaultrs" }
+vaultrs-login = { version = "0.1.0", path = "../vaultrs/vaultrs-login", features = ["oidc"] }
 webbrowser = "0.5.5"
 
 [dev-dependencies]

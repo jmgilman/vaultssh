@@ -78,7 +78,7 @@ async fn main() -> Result<()> {
             _ => return Err(e),
         }
     } else {
-        crate::ssh::validate(cert.unwrap().as_str())?
+        !crate::ssh::is_valid(cert.unwrap().as_str())?
     };
 
     if needs_signing {
@@ -106,7 +106,7 @@ async fn main() -> Result<()> {
 
 /// Checks the Vault server status and confirms it's initialized and unsealed.
 async fn check_status(client: &VaultClient) -> Result<()> {
-    match client.status().await {
+    match client.status().await? {
         vaultrs::sys::ServerStatus::OK => Ok(()),
         vaultrs::sys::ServerStatus::SEALED => Err(anyhow!("The Vault server is sealed")),
         vaultrs::sys::ServerStatus::UNINITIALIZED => {
@@ -126,7 +126,10 @@ async fn gen_cert(config: &Config, console: &impl Console) -> Result<()> {
 
     // Attempt to load token from file if needed
     let token = match config.token.is_none() {
-        true => VaultClient::token_from_file().unwrap_or_else(|_| "".to_string()),
+        true => {
+            console.neutral("Using token from ~/.vault-token...");
+            VaultClient::token_from_file().unwrap_or_else(|_| "".to_string())
+        }
         false => config.token.as_ref().unwrap().clone(),
     };
 
