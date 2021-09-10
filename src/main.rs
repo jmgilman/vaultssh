@@ -72,11 +72,12 @@
 //! # configure each one and may only configure the one you set to the default.
 //!
 //! auth = "oidc"                  # default authentication method to use
+//! auth_mount = "oidc"            # default mount point for the authentication method
 //! identity = "~/.ssh/id_rsa"     # ssh key-pair to sign and use
 //! mount = "ssh"                  # mount path for ssh backend
 //! persist = true                 # persist acquired tokens to ~/.vault-token
 //! role = "myrole"                # vault role account to sign with
-//! server = "https://!vault:8200"  # address of vault server
+//! server = "https://vault:8200"  # address of vault server
 //!
 //! [approle]                      # name of auth method to configure
 //! role_id = "myrole"             # default values for auth method
