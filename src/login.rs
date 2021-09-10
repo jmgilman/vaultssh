@@ -3,13 +3,17 @@ use crate::display;
 use crate::error::ClientError;
 use anyhow::{anyhow, Result};
 use vaultrs::client::Client;
-use vaultrs::login;
+use vaultrs_login::method::{self, Method};
+use vaultrs_login::{
+    engines::{approle::AppRoleLogin, oidc::OIDCLogin, userpass::UserpassLogin},
+    LoginClient,
+};
 
 pub trait LoginPrompt: Sized {
     fn prompt(console: &impl display::Console, config: &Config) -> Result<Self>;
 }
 
-impl LoginPrompt for login::AppRoleLogin {
+impl LoginPrompt for AppRoleLogin {
     fn prompt(console: &impl display::Console, config: &Config) -> Result<Self> {
         let role_id = match config.approle.as_ref() {
             Some(c) => c.role_id.clone(),
@@ -17,11 +21,11 @@ impl LoginPrompt for login::AppRoleLogin {
         };
         let secret_id = console.password("Secret ID")?;
 
-        Ok(login::AppRoleLogin { role_id, secret_id })
+        Ok(AppRoleLogin { role_id, secret_id })
     }
 }
 
-impl LoginPrompt for login::OIDCLogin {
+impl LoginPrompt for OIDCLogin {
     fn prompt(console: &impl display::Console, config: &Config) -> Result<Self> {
         let role = match config.oidc.as_ref() {
             Some(c) => c.role.clone(),
@@ -32,11 +36,11 @@ impl LoginPrompt for login::OIDCLogin {
             true => None,
         };
 
-        Ok(vaultrs::login::OIDCLogin { port: None, role })
+        Ok(OIDCLogin { port: None, role })
     }
 }
 
-impl LoginPrompt for login::UserpassLogin {
+impl LoginPrompt for UserpassLogin {
     fn prompt(console: &impl display::Console, config: &Config) -> Result<Self> {
         let username = match config.userpass.as_ref() {
             Some(c) => c.username.clone(),
@@ -44,8 +48,7 @@ impl LoginPrompt for login::UserpassLogin {
         };
         let password = console.password("Password")?;
 
-        println!("{} - {}", username, password);
-        Ok(login::UserpassLogin { username, password })
+        Ok(UserpassLogin { username, password })
     }
 }
 
@@ -112,7 +115,7 @@ impl<C: Client> TokenFileHandler for C {
 /// and then finally a login attempt is made. If successful, the given client
 /// can be assumed to have a valid token.
 pub async fn login(
-    client: &mut impl Client,
+    client: &mut impl LoginClient,
     config: &Config,
     console: &impl display::Console,
 ) -> Result<()> {
@@ -123,15 +126,14 @@ pub async fn login(
     };
     let mount = match config.auth_mount.as_ref() {
         Some(m) => m.clone(),
-        None => console.input("Mount", Some(login::method::default_mount(&method)), None)?,
+        None => console.input("Mount", Some(method::default_mount(&method)), None)?,
     };
-    println!("{}", mount);
 
     // Perform login
     match method {
-        login::Method::APPROLE => login_approle(client, mount.as_str(), config, console).await?,
-        login::Method::OIDC => login_oidc(client, mount.as_str(), config, console).await?,
-        login::Method::USERPASS => login_userpass(client, mount.as_str(), config, console).await?,
+        Method::APPROLE => login_approle(client, mount.as_str(), config, console).await?,
+        Method::OIDC => login_oidc(client, mount.as_str(), config, console).await?,
+        Method::USERPASS => login_userpass(client, mount.as_str(), config, console).await?,
         _ => return Err(ClientError::UnsupportedLogin.into()),
     }
 
@@ -144,8 +146,8 @@ pub async fn login(
 }
 
 /// Prompts a user to select a login method from the supported methods.
-fn choose_method(console: &impl display::Console) -> Result<login::Method> {
-    let methods = login::method::SUPPORTED_METHODS.to_vec();
+fn choose_method(console: &impl display::Console) -> Result<Method> {
+    let methods = method::SUPPORTED_METHODS.to_vec();
     let index = console
         .select("Please select a login option below", &methods, None)?
         .unwrap();
@@ -155,25 +157,25 @@ fn choose_method(console: &impl display::Console) -> Result<login::Method> {
 
 /// Performs a login using the AppRole auth engine.
 async fn login_approle(
-    client: &mut impl Client,
+    client: &mut impl LoginClient,
     mount: &str,
     config: &Config,
     console: &impl display::Console,
 ) -> Result<()> {
-    let params = login::AppRoleLogin::prompt(console, config)?;
+    let params = AppRoleLogin::prompt(console, config)?;
     client.login(mount, &params).await?;
     Ok(())
 }
 
 /// Performs a login using the OIDC auth engine.
 async fn login_oidc(
-    client: &mut impl Client,
+    client: &mut impl LoginClient,
     mount: &str,
     config: &Config,
     console: &impl display::Console,
 ) -> Result<()> {
     // Generate authorization URL
-    let params = login::OIDCLogin::prompt(console, config)?;
+    let params = OIDCLogin::prompt(console, config)?;
     let callback = client.login_multi(mount, params).await?;
 
     // Attempt to open user's browser to the authorization URL
@@ -187,19 +189,25 @@ async fn login_oidc(
 
 /// Performs a login using the Userpass auth engine.
 async fn login_userpass(
-    client: &mut impl Client,
+    client: &mut impl LoginClient,
     mount: &str,
     config: &Config,
     console: &impl display::Console,
 ) -> Result<()> {
-    let params = login::UserpassLogin::prompt(console, config)?;
+    let params = UserpassLogin::prompt(console, config)?;
     client.login(mount, &params).await?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{choose_method, login, Config};
+    use super::{choose_method, Config};
+    use vaultrs_login::engines::{
+        approle::AppRoleLogin,
+        oidc::{OIDCCallback, OIDCCallbackParams, OIDCLogin},
+        userpass::UserpassLogin,
+    };
+    use vaultrs_login::method::Method;
 
     #[tokio::test]
     async fn test_login() {
@@ -209,11 +217,11 @@ mod tests {
 
         console
             .expect_select()
-            .returning(|_, _: &[login::Method], _| Ok(Some(0)))
+            .returning(|_, _: &[Method], _| Ok(Some(0)))
             .withf(|prompt, _, _| prompt == "Please select a login option below");
         client
             .expect_login()
-            .returning(|_, _: &login::AppRoleLogin| Ok(()))
+            .returning(|_, _: &AppRoleLogin| Ok(()))
             .withf(|mount, login| {
                 mount == "input" && login.role_id == "input" && login.secret_id == "password"
             });
@@ -222,14 +230,14 @@ mod tests {
 
         // Test with default
         let console = crate::testing::console();
-        config.auth = Some(login::Method::APPROLE);
+        config.auth = Some(Method::APPROLE);
         config.auth_mount = Some(String::from("mount"));
         config.approle = Some(crate::config::AppRoleConfig {
             role_id: String::from("role"),
         });
         client
             .expect_login()
-            .returning(|_, _: &login::AppRoleLogin| Ok(()))
+            .returning(|_, _: &AppRoleLogin| Ok(()))
             .withf(|mount, login| {
                 mount == "mount" && login.role_id == "role" && login.secret_id == "password"
             });
@@ -243,11 +251,11 @@ mod tests {
 
         console
             .expect_select()
-            .returning(|_, _: &[login::Method], _| Ok(Some(1)))
+            .returning(|_, _: &[Method], _| Ok(Some(1)))
             .withf(|prompt, _, _| prompt == "Please select a login option below");
         let res = choose_method(&console);
         assert!(res.is_ok());
-        assert!(matches! { res.unwrap(), login::Method::OIDC });
+        assert!(matches! { res.unwrap(), Method::OIDC });
     }
 
     #[tokio::test]
@@ -258,7 +266,7 @@ mod tests {
 
         client
             .expect_login()
-            .returning(|_, _: &login::AppRoleLogin| Ok(()))
+            .returning(|_, _: &AppRoleLogin| Ok(()))
             .withf(|mount, login| {
                 mount == "mount" && login.role_id == "input" && login.secret_id == "password"
             });
@@ -271,8 +279,8 @@ mod tests {
         });
         client
             .expect_login()
-            .returning(|_, _: &login::AppRoleLogin| Ok(()))
-            .withf(|mount, login: &login::AppRoleLogin| {
+            .returning(|_, _: &AppRoleLogin| Ok(()))
+            .withf(|mount, login: &AppRoleLogin| {
                 mount == "mount" && login.role_id == "role" && login.secret_id == "password"
             });
         let res = super::login_approle(&mut client, "mount", &config, &console).await;
@@ -287,13 +295,13 @@ mod tests {
 
         client
             .expect_login_multi()
-            .returning(|_, _: login::OIDCLogin| {
-                let params = login::oidc::OIDCCallbackParams {
+            .returning(|_, _: OIDCLogin| {
+                let params = OIDCCallbackParams {
                     code: String::from("code"),
                     nonce: String::from("nonce"),
                     state: String::from("state"),
                 };
-                Ok(login::OIDCCallback {
+                Ok(OIDCCallback {
                     handle: tokio::task::spawn(async { params }),
                     url: String::from("test"),
                 })
@@ -309,9 +317,7 @@ mod tests {
         client
             .expect_login_multi_callback()
             .returning(|_, _| Ok(()))
-            .withf(|mount, callback: &login::OIDCCallback| {
-                mount == "mount" && callback.url == "test"
-            });
+            .withf(|mount, callback: &OIDCCallback| mount == "mount" && callback.url == "test");
 
         let res = super::login_oidc(&mut client, "mount", &config, &console).await;
         assert!(res.is_ok());
@@ -322,13 +328,13 @@ mod tests {
         });
         client
             .expect_login_multi()
-            .returning(|_, _: login::OIDCLogin| {
-                let params = login::oidc::OIDCCallbackParams {
+            .returning(|_, _: OIDCLogin| {
+                let params = OIDCCallbackParams {
                     code: String::from("code"),
                     nonce: String::from("nonce"),
                     state: String::from("state"),
                 };
-                Ok(login::OIDCCallback {
+                Ok(OIDCCallback {
                     handle: tokio::task::spawn(async { params }),
                     url: String::from("test"),
                 })
@@ -348,7 +354,7 @@ mod tests {
 
         client
             .expect_login()
-            .returning(|_, _: &login::UserpassLogin| Ok(()))
+            .returning(|_, _: &UserpassLogin| Ok(()))
             .withf(|mount, login| {
                 mount == "mount" && login.username == "input" && login.password == "password"
             });
@@ -361,8 +367,8 @@ mod tests {
         });
         client
             .expect_login()
-            .returning(|_, _: &login::UserpassLogin| Ok(()))
-            .withf(|mount, login: &login::UserpassLogin| {
+            .returning(|_, _: &UserpassLogin| Ok(()))
+            .withf(|mount, login: &UserpassLogin| {
                 mount == "mount" && login.username == "username" && login.password == "password"
             });
         let res = super::login_userpass(&mut client, "mount", &config, &console).await;

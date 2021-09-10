@@ -2,7 +2,7 @@ mod common;
 
 use assert_cmd::prelude::*;
 use assert_fs::prelude::*;
-use common::VaultServer;
+use common::VaultServerHelper;
 use predicates::prelude::*;
 use std::{
     io::Write,
@@ -10,56 +10,64 @@ use std::{
 };
 use vaultrs::{
     api::{auth::userpass::requests::CreateUserRequest, ssh::requests::SetRoleRequest},
+    client::Client,
     error::ClientError,
 };
+use vaultrs_test::docker::{Server, ServerConfig};
+use vaultrs_test::{VaultServer, VaultServerConfig};
 
-#[tokio::test]
-async fn test_with_login() {
-    let docker = testcontainers::clients::Cli::default();
-    let server = VaultServer::new(&docker);
-    let config = setup(&server).await.unwrap();
+#[test]
+fn test_with_login() {
+    let config = VaultServerConfig::default(Some(common::VERSION));
+    let instance = config.to_instance();
 
-    // Run the binary
-    let mut proc = Command::cargo_bin("vaultssh")
-        .unwrap()
-        .arg("-b") // The terminal effects break the test
-        .arg("-i")
-        .arg(config.key)
-        .arg("-a")
-        .arg("userpass")
-        .arg("--auth-mount")
-        .arg(config.userpass.path)
-        .arg("-m")
-        .arg(config.ssh.path)
-        .arg("-r")
-        .arg(config.ssh.role)
-        .arg("-s")
-        .arg(server.address)
-        .arg("test.com")
-        .arg("--")
-        .arg("--help") // Don't want to actually SSH into anything
-        .stdin(Stdio::piped())
-        .spawn()
-        .unwrap();
+    instance.run(|ops| async move {
+        let server = VaultServer::new(&ops, &config);
+        let client = server.client();
+        let config = setup(&server, &client).await.unwrap();
 
-    // Write username/password to login prompt
-    let mut stdin = proc.stdin.take().unwrap();
-    stdin
-        .write_fmt(format_args!("{}\n", config.userpass.username))
-        .unwrap();
-    stdin
-        .write_fmt(format_args!("{}\n", config.userpass.password))
-        .unwrap();
-    drop(stdin);
+        // Run the binary
+        let mut proc = Command::cargo_bin("vaultssh")
+            .unwrap()
+            .arg("-b") // The terminal effects break the test
+            .arg("-i")
+            .arg(config.key)
+            .arg("-a")
+            .arg("userpass")
+            .arg("--auth-mount")
+            .arg(config.userpass.path)
+            .arg("-m")
+            .arg(config.ssh.path)
+            .arg("-r")
+            .arg(config.ssh.role)
+            .arg("-s")
+            .arg(server.address)
+            .arg("test.com")
+            .arg("--")
+            .arg("--help") // Don't want to actually SSH into anything
+            .stdin(Stdio::piped())
+            .spawn()
+            .unwrap();
 
-    let res = proc.wait_with_output().unwrap();
-    assert!(res.status.success());
+        // Write username/password to login prompt
+        let mut stdin = proc.stdin.take().unwrap();
+        stdin
+            .write_fmt(format_args!("{}\n", config.userpass.username))
+            .unwrap();
+        stdin
+            .write_fmt(format_args!("{}\n", config.userpass.password))
+            .unwrap();
+        drop(stdin);
 
-    // Validate a certificate was generated
-    config
-        .dir
-        .child("id_rsa-cert.pub")
-        .assert(predicate::path::exists());
+        let res = proc.wait_with_output().unwrap();
+        assert!(res.status.success());
+
+        // Validate a certificate was generated
+        config
+            .dir
+            .child("id_rsa-cert.pub")
+            .assert(predicate::path::exists());
+    });
 }
 
 #[derive(Debug)]
@@ -81,7 +89,7 @@ pub struct TestConfig {
     pub userpass: UserpassEndpoint,
 }
 
-async fn setup(server: &VaultServer<'_>) -> Result<TestConfig, ClientError> {
+async fn setup(server: &VaultServer, client: &impl Client) -> Result<TestConfig, ClientError> {
     let ssh = SSHEndpoint {
         path: String::from("ssh"),
         role: String::from("test"),
@@ -103,15 +111,15 @@ async fn setup(server: &VaultServer<'_>) -> Result<TestConfig, ClientError> {
 
     // Mount the Userpass auth engine
     server
-        .mount_auth(userpass.path.as_str(), "userpass")
+        .mount_auth(client, userpass.path.as_str(), "userpass")
         .await?;
 
     // Create policy
-    vaultrs::sys::policy::set(&server.client, "test", policy).await?;
+    vaultrs::sys::policy::set(client, "test", policy).await?;
 
     // Create test user
     vaultrs::auth::userpass::user::set(
-        &server.client,
+        client,
         userpass.path.as_str(),
         userpass.username.as_str(),
         userpass.password.as_str(),
@@ -120,11 +128,13 @@ async fn setup(server: &VaultServer<'_>) -> Result<TestConfig, ClientError> {
     .await?;
 
     // Mount the SSH secrets engine
-    server.mount(ssh.path.as_str(), "ssh").await?;
+    server
+        .mount_secret(client, ssh.path.as_str(), "ssh")
+        .await?;
 
     // Create role
     vaultrs::ssh::role::set(
-        &server.client,
+        client,
         ssh.path.as_str(),
         ssh.role.as_str(),
         Some(
@@ -140,7 +150,7 @@ async fn setup(server: &VaultServer<'_>) -> Result<TestConfig, ClientError> {
     .await?;
 
     // Generate CA certificate
-    vaultrs::ssh::ca::generate(&server.client, ssh.path.as_str()).await?;
+    vaultrs::ssh::ca::generate(client, ssh.path.as_str()).await?;
 
     Ok(TestConfig {
         dir,

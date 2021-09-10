@@ -2,7 +2,7 @@ use crate::{error::ClientError, Opts};
 use anyhow::{anyhow, Result};
 use phf::phf_map;
 use serde::Deserialize;
-use vaultrs::login::Method;
+use vaultrs_login::method::Method;
 
 pub static DEFAULTS: phf::Map<&'static str, &'static str> = phf_map! {
     "config" => "~/.vssh",

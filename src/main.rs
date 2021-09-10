@@ -13,10 +13,8 @@ use crate::{display::Console, error::ClientError, login::TokenFileHandler};
 use anyhow::{anyhow, Result};
 use clap::Clap;
 use config::Config;
-use vaultrs::{
-    client::{VaultClient, VaultClientSettingsBuilder},
-    login::Method,
-};
+use vaultrs::client::{Client, VaultClient, VaultClientSettingsBuilder};
+use vaultrs_login::method::Method;
 
 #[derive(Clap, Default)]
 #[clap(
@@ -83,14 +81,11 @@ async fn main() -> Result<()> {
     };
 
     if needs_signing {
-        println!("{:#?}", config.persist);
         match config.basic {
             Some(true) => {
-                println!("Basic");
                 gen_cert(&config, &display::VanillaConsole::new()).await?;
             }
             _ => {
-                println!("Not basic");
                 gen_cert(&config, &display::CLIConsole::new()).await?;
             }
         }
@@ -152,7 +147,6 @@ async fn gen_cert(config: &Config, console: &impl Console) -> Result<()> {
         console.error("No valid token found.");
 
         if let Err(e) = crate::login::login(&mut client, config, console).await {
-            println!("{:#?}", e);
             return Err(error::handle_login_error(e).context("Login failed"));
         }
 

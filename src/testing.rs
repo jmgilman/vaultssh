@@ -4,8 +4,8 @@ use rustify::clients::reqwest::Client as HTTPClient;
 use vaultrs::api::EndpointMiddleware;
 use vaultrs::client::{Client, VaultClientSettings};
 use vaultrs::error::ClientError;
-use vaultrs::login::core::{LoginMethod, MultiLoginCallback, MultiLoginMethod};
-use vaultrs::login::Method;
+use vaultrs_login::method::Method;
+use vaultrs_login::{LoginClient, LoginMethod, MultiLoginCallback, MultiLoginMethod};
 
 mock! {
     pub Client {}
@@ -13,6 +13,13 @@ mock! {
     #[async_trait]
     impl Client for Client {
         fn http(&self) -> &HTTPClient;
+        fn middle(&self) -> &EndpointMiddleware;
+        fn settings(&self) -> &VaultClientSettings;
+        fn set_token(&mut self, token: &str);
+    }
+
+    #[async_trait]
+    impl LoginClient for Client {
         async fn login<M: 'static + LoginMethod>(&mut self, mount: &str, method: &M) -> Result<(), ClientError>;
         async fn login_multi<M: 'static + MultiLoginMethod>(
             &self,
@@ -24,8 +31,6 @@ mock! {
             mount: &str,
             callback: C,
         ) -> Result<(), ClientError>;
-        fn middle(&self) -> &EndpointMiddleware;
-        fn settings(&self) -> &VaultClientSettings;
     }
 }
 
