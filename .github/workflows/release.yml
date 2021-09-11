@@ -1,13 +1,11 @@
 on: workflow_dispatch
 
-name: Publish
+name: Release
 
 jobs:
   build:
     name: Build binaries
     runs-on: ubuntu-latest
-    if: startsWith(github.event.ref, 'refs/tags/v')
-    needs: [test, lints, check]
     strategy:
       matrix:
         target:
