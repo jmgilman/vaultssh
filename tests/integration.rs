@@ -27,7 +27,7 @@ fn test_with_login() {
         let config = setup(&server, &client).await.unwrap();
 
         // Run the binary
-        let mut proc = Command::cargo_bin("vaultssh")
+        let mut proc = Command::cargo_bin("vssh")
             .unwrap()
             .arg("-b") // The terminal effects break the test
             .arg("-i")
