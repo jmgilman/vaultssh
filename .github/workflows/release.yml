@@ -1,4 +1,9 @@
-on: workflow_dispatch
+on: 
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'     
+        required: true
 
 name: Release
 
@@ -30,30 +35,9 @@ jobs:
         with:
           files: target/${{ matrix.job.target }}/release/vssh
           dest: target/${{ matrix.job.target }}.zip
-      - name: Cache build artifacts for release
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-build-artifacts
-        with:
-          path: target/*.zip
-          key: cache-build-artifacts
-  release:
-    name: Create release
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - name: Restore build artifacts from cache
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-build-artifacts
-        with:
-          path: target/
-          key: cache-build-artifacts
-      - name: Create release with artifacts
+      - name: Create release with artifact
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.event.inputs.tag }}
           files: |
-            aarch64-unknown-linux-gnu.zip
-            x86_64-apple-darwin.zip
-            x86_64-pc-windows-msvc.zip
-            x86_64-unknown-linux-gnu.zip
+            target/${{ matrix.job.target }}.zip
