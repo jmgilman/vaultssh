@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.43"
-clap = { git = "https://github.com/clap-rs/clap/" }
+clap = "3.0.0-beta.4"
 console = "0.14.1"
 dialoguer = "0.8.0"
 dirs = "3.0.2"
@@ -28,8 +28,8 @@ text_io = "0.1.9"
 thiserror = "1.0.28"
 tokio = { version = "1.11.0", features = ["full"] }
 toml = "0.5.8"
-vaultrs = { version = "0.5.0", path = "../vaultrs" }
-vaultrs-login = { version = "0.1.0", path = "../vaultrs/vaultrs-login", features = ["oidc"] }
+vaultrs = { version = "0.5.1" }
+vaultrs-login = { version = "0.1.1", features = ["oidc"] }
 webbrowser = "0.5.5"
 
 [dev-dependencies]

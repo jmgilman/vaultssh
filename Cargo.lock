@@ -239,7 +239,8 @@ checksum = "fff857943da45f546682664a79488be82e69e43c1a7a2307679ab9afb3a66d2e"
 [[package]]
 name = "clap"
 version = "3.0.0-beta.4"
-source = "git+https://github.com/clap-rs/clap/#09ec8bd1db5fbb2c3c075a12601da5d955b9cc20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcd70aa5597dbc42f7217a543f9ef2768b2ef823ba29036072d30e1d88e98406"
 dependencies = [
  "atty",
  "bitflags",
@@ -256,7 +257,8 @@ dependencies = [
 [[package]]
 name = "clap_derive"
 version = "3.0.0-beta.4"
-source = "git+https://github.com/clap-rs/clap/#09ec8bd1db5fbb2c3c075a12601da5d955b9cc20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b5bb0d655624a0b8770d1c178fb8ffcb1f91cc722cb08f451e3dc72465421ac"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -2230,7 +2232,9 @@ dependencies = [
 
 [[package]]
 name = "vaultrs"
-version = "0.5.0"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e150fa3f700f08adbdc7d73f0c1b1756f7b6e7f832c2d38fc420c0fa01544a3"
 dependencies = [
  "async-trait",
  "bytes",
@@ -2249,7 +2253,9 @@ dependencies = [
 
 [[package]]
 name = "vaultrs-login"
-version = "0.1.0"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0be8f6ca1b7bd0346e79ddc8b14f051cd6946885c0a890cfe252b19343f867e2"
 dependencies = [
  "async-trait",
  "serde",
