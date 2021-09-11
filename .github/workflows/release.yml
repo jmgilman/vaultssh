@@ -5,30 +5,31 @@ name: Release
 jobs:
   build:
     name: Build and release binaries
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.job.os }}
     strategy:
       matrix:
-        target:
-          - aarch64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - x86_64-pc-windows-msvc
-          - x86_64-unknown-linux-gnu
+        job:
+          - { os: ubuntu-20.04, target: aarch64-unknown-linux-gnu, use-cross: true }
+          - { os: macos-10.15 , target: x86_64-apple-darwin }
+          - { os: windows-2019, target: x86_64-pc-windows-msvc }
+          - { os: ubuntu-20.04, target: x86_64-unknown-linux-gnu }
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: ${{ matrix.target }}
+          target: ${{ matrix.job.target }}
           override: true
+          profile: minimal
       - uses: actions-rs/cargo@v1
         with:
-          use-cross: true
+          use-cross: ${{ matrix.job.use-cross }}
           command: build
-          args: --release --target=${{ matrix.target }}
+          args: --release --target=${{ matrix.job.target }}
       - uses: papeloto/action-zip@v1
         with:
-          files: target/${{ matrix.target }}/release/vssh
-          dest: target/${{ matrix.target }}.zip
+          files: target/${{ matrix.job.target }}/release/vssh
+          dest: target/${{ matrix.job.target }}.zip
       - name: Cache build artifacts for release
         uses: actions/cache@v2
         env:
