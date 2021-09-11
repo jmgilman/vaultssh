@@ -1,4 +1,15 @@
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - '.github/*'
+      - 'examples/*'
+      - '*.md'
+  pull_request:
+    paths-ignore:
+      - '.github/*'
+      - 'examples/*'
+      - '*.md'
+  workflow_dispatch:
 
 name: CI
 
@@ -84,44 +95,42 @@ jobs:
         with:
             registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
   build:
-    name: Build binaries
-    runs-on: ubuntu-latest
+    name: Build and release binaries
+    runs-on: ${{ matrix.job.os }}
     if: startsWith(github.event.ref, 'refs/tags/v')
     needs: [test, lints, check]
     strategy:
       matrix:
-        target:
-          - aarch64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - x86_64-pc-windows-msvc
-          - x86_64-unknown-linux-gnu
+        job:
+          - { os: ubuntu-20.04, target: aarch64-unknown-linux-gnu, use-cross: true }
+          - { os: macos-10.15 , target: x86_64-apple-darwin }
+          - { os: windows-2019, target: x86_64-pc-windows-msvc }
+          - { os: ubuntu-20.04, target: x86_64-unknown-linux-gnu }
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: ${{ matrix.target }}
+          target: ${{ matrix.job.target }}
           override: true
+          profile: minimal
       - uses: actions-rs/cargo@v1
         with:
-          use-cross: true
+          use-cross: ${{ matrix.job.use-cross }}
           command: build
-          args: --release --target=${{ matrix.target }}
+          args: --release --target=${{ matrix.job.target }}
       - uses: papeloto/action-zip@v1
+        if: startsWith(matrix.job.os, 'ubuntu') || startsWith(matrix.job.os, 'macos')
         with:
-          files: target/${{ matrix.target }}/release/vssh
-          dest: ${{ matrix.target }}.zip
-  release:
-    name: Create release
-    runs-on: ubuntu-latest
-    if: startsWith(github.event.ref, 'refs/tags/v')
-    needs: [test, lints, check, build]
-    steps:
-      - uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+          files: target/${{ matrix.job.target }}/release/vssh
+          dest: target/${{ matrix.job.target }}.zip
+      - uses: papeloto/action-zip@v1
+        if: startsWith(matrix.job.os, 'windows')
+        with:
+          files: target/${{ matrix.job.target }}/release/vssh.exe
+          dest: target/${{ matrix.job.target }}.zip
+      - name: Create release with artifact
+        uses: softprops/action-gh-release@v1
         with:
           files: |
-            aarch64-unknown-linux-gnu.zip
-            x86_64-apple-darwin.zip
-            x86_64-pc-windows-msvc.zip
-            x86_64-unknown-linux-gnu.zip
+            target/${{ matrix.job.target }}.zip
