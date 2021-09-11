@@ -32,8 +32,14 @@ jobs:
           command: build
           args: --release --target=${{ matrix.job.target }}
       - uses: papeloto/action-zip@v1
+        if: startsWith(matrix.job.os, 'ubuntu') || startsWith(matrix.job.os, 'macos')
         with:
           files: target/${{ matrix.job.target }}/release/vssh
+          dest: target/${{ matrix.job.target }}.zip
+      - uses: papeloto/action-zip@v1
+        if: startsWith(matrix.job.os, 'windows')
+        with:
+          files: target/${{ matrix.job.target }}/release/vssh.exe
           dest: target/${{ matrix.job.target }}.zip
       - name: Create release with artifact
         uses: softprops/action-gh-release@v1
