@@ -1,14 +1,14 @@
 on:
   push:
     paths-ignore:
-      - '.github/*'
-      - 'examples/*'
-      - '*.md'
+      - '.github/**'
+      - 'examples/**'
+      - '**.md'
   pull_request:
     paths-ignore:
-      - '.github/*'
-      - 'examples/*'
-      - '*.md'
+      - '.github/**'
+      - 'examples/**'
+      - '**.md'
   workflow_dispatch:
 
 name: CI
