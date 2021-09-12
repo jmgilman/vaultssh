@@ -63,9 +63,16 @@ jobs:
         with:
           name: build-artifacts
           path: release
+      - name: Generate checksum
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          patterns: |
+            *.zip
+            *.tar.gz
       - name: Create release with artifact
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.inputs.tag }}
           files: |
             release/*
+            checksum.txt
