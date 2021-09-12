@@ -38,7 +38,6 @@ jobs:
         if: startsWith(matrix.job.os, 'ubuntu') || startsWith(matrix.job.os, 'macos')
         run: tar -czvf target/${{ matrix.job.target }}.tar.gz target/${{ matrix.job.target }}/release/vssh
       - name: Zip build result
-        uses: ihiroky/archive-action@v1
         if: startsWith(matrix.job.os, 'windows')
         run: zip -r target/${{ matrix.job.target }}.zip target/${{ matrix.job.target }}/release/vssh.exe
       - name: Upload build result as artifact
