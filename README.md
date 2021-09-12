@@ -4,8 +4,8 @@
     <a href="https://crates.io/crates/vaultssh">
         <img src="https://img.shields.io/crates/v/vaultssh">
     </a>
-    <a href="https://docs.rs/vaultssh">
-        <img src="https://img.shields.io/docsrs/vaultssh" />
+    <a href="https://www.vaultproject.io/">
+        <img src="https://img.shields.io/badge/Vault-1.8.2-green" />
     </a>
     <a href="https://github.com/jmgilman/vaultssh/actions/workflows/ci.yml">
         <img src="https://github.com/jmgilman/vaultssh/actions/workflows/ci.yml/badge.svg"/>

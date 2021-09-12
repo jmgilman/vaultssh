@@ -5,7 +5,7 @@ on:
         description: 'Release tag'     
         required: true
 
-name: Release
+name: Manual Release
 
 jobs:
   build:
@@ -19,31 +19,53 @@ jobs:
           - { os: windows-2019, target: x86_64-pc-windows-msvc }
           - { os: ubuntu-20.04, target: x86_64-unknown-linux-gnu }
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: ${{ matrix.job.target }}
           override: true
           profile: minimal
-      - uses: actions-rs/cargo@v1
+      - name: Build
+        uses: actions-rs/cargo@v1
         with:
           use-cross: ${{ matrix.job.use-cross }}
           command: build
           args: --release --target=${{ matrix.job.target }}
-      - uses: papeloto/action-zip@v1
+      - name: Archive build result
+        uses: ihiroky/archive-action@v1
         if: startsWith(matrix.job.os, 'ubuntu') || startsWith(matrix.job.os, 'macos')
         with:
-          files: target/${{ matrix.job.target }}/release/vssh
-          dest: target/${{ matrix.job.target }}.zip
-      - uses: papeloto/action-zip@v1
+          root_dir: target/${{ matrix.job.target }}/release/vssh
+          file_path: ${{ matrix.job.target }}.tar.gz
+      - name: Zip build result
+        uses: ihiroky/archive-action@v1
         if: startsWith(matrix.job.os, 'windows')
         with:
-          files: target/${{ matrix.job.target }}/release/vssh.exe
-          dest: target/${{ matrix.job.target }}.zip
+          root_dir: target/${{ matrix.job.target }}/release/vssh
+          file_path: ${{ matrix.job.target }}.zip
+      - name: Upload build result as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: target/${{ matrix.job.target }}.*
+  release:
+    name: Create release
+    runs-on: ubuntu-20.04
+    needs: [build]
+    steps:
+      - name: Create release directory
+        run: mkdir release
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+          path: release
       - name: Create release with artifact
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.inputs.tag }}
           files: |
-            target/${{ matrix.job.target }}.zip
+            release/*

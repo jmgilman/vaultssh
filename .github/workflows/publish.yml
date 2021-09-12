@@ -1,6 +1,6 @@
 on: workflow_dispatch
 
-name: Publish
+name: Manual Publish
 
 jobs:
   publish:
