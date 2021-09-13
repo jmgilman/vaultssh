@@ -1,0 +1,62 @@
+on: 
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'     
+        required: true
+
+name: Manual Homebrew Push
+
+jobs:
+  formula:
+    runs-on: ubuntu-latest
+    name: Push updated Homebrew formula
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Fetch checksum file
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          file: "checksum.txt"
+          target: "checksum.txt"
+          version: "tags/${{ github.event.inputs.tag }}"
+      - name: Fetch checksums
+        id: checksums
+        run: |
+          APPLE=$(cat checksum.txt | grep release/x86_64-apple-darwin.tar.gz | cut -d " " -f 1)
+          LINUX=$(cat checksum.txt | grep release/x86_64-unknown-linux-gnu.tar.gz | cut -d " " -f 1)
+
+          echo "::set-output name=sha256_apple::$APPLE"
+          echo "::set-output name=sha256_linux::$LINUX"
+      - name: Build formula
+        uses: cuchi/jinja2-action@v1.2.0
+        with:
+          template: ci/brew.rb.j2
+          output_file: vaultssh.rb
+          strict: true
+          variables: |
+            SHA256_APPLE=${{ steps.checksums.outputs.sha256_apple }}
+            SHA256_LINUX=${{ steps.checksums.outputs.sha256_linux }}
+            VERSION=${{ github.event.inputs.tag }}
+      - name: Encode formula with base64
+        id: encode
+        run: |
+          BASE64=$(base64 -w 0 vaultssh.rb)
+          echo "::set-output name=base64::$BASE64"
+      - name: Dispatch update to homebrew tap repository
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: "${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}"
+          repository: jmgilman/homebrew-apps
+          event-type: update
+          client-payload: |
+            {
+              "content": "${{ steps.encode.outputs.base64 }}",
+              "name": "vaultssh",
+              "version": "${{ github.event.inputs.tag }}"
+            }
+      - name: Upload formula as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: formula
+          path: vaultssh.rb

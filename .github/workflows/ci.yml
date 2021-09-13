@@ -2,11 +2,13 @@ on:
   push:
     paths-ignore:
       - '.github/**'
+      - 'ci/**'
       - 'examples/**'
       - '**.md'
   pull_request:
     paths-ignore:
       - '.github/**'
+      - 'ci/**'
       - 'examples/**'
       - '**.md'
   workflow_dispatch:
@@ -95,7 +97,7 @@ jobs:
         with:
             registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
   build:
-    name: Build and release binaries
+    name: Build binaries
     runs-on: ${{ matrix.job.os }}
     if: startsWith(github.event.ref, 'refs/tags/v')
     needs: [test, lints, check]
@@ -107,30 +109,53 @@ jobs:
           - { os: windows-2019, target: x86_64-pc-windows-msvc }
           - { os: ubuntu-20.04, target: x86_64-unknown-linux-gnu }
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: ${{ matrix.job.target }}
           override: true
           profile: minimal
-      - uses: actions-rs/cargo@v1
+      - name: Build
+        uses: actions-rs/cargo@v1
         with:
           use-cross: ${{ matrix.job.use-cross }}
           command: build
           args: --release --target=${{ matrix.job.target }}
-      - uses: papeloto/action-zip@v1
+      - name: Archive build result
         if: startsWith(matrix.job.os, 'ubuntu') || startsWith(matrix.job.os, 'macos')
-        with:
-          files: target/${{ matrix.job.target }}/release/vssh
-          dest: target/${{ matrix.job.target }}.zip
-      - uses: papeloto/action-zip@v1
+        run: tar -czvf target/${{ matrix.job.target }}.tar.gz target/${{ matrix.job.target }}/release/vssh
+      - name: Zip build result
         if: startsWith(matrix.job.os, 'windows')
+        run: 7z a -tzip target/${{ matrix.job.target }}.zip target/${{ matrix.job.target }}/release/vssh.exe
+      - name: Upload build result as artifact
+        uses: actions/upload-artifact@v2
         with:
-          files: target/${{ matrix.job.target }}/release/vssh.exe
-          dest: target/${{ matrix.job.target }}.zip
+          name: build-artifacts
+          path: target/${{ matrix.job.target }}.*
+  release:
+    name: Create release
+    runs-on: ubuntu-20.04
+    needs: [test, lints, check, build]
+    steps:
+      - name: Create release directory
+        run: mkdir release
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+          path: release
+      - name: Generate checksum
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          patterns: |
+            release/*.zip
+            release/*.tar.gz
       - name: Create release with artifact
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            target/${{ matrix.job.target }}.zip
+            release/*
+            checksum.txt

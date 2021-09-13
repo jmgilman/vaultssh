@@ -1,0 +1,22 @@
+
+class Vaultssh < Formula
+  desc "Small cli wrapper for authenticating with ssh keys from hashicorp vault"
+  homepage "https://github.com/jmgilman/vaultssh"
+  version "{{ VERSION | replace("v", "") }}"
+  license "MIT"
+  bottle :unneeded
+
+  if OS.mac?
+    url "https://github.com/jmgilman/vaultssh/releases/download/{{ VERSION }}/x86_64-apple-darwin.tar.gz"
+    sha256 "{{ SHA256_APPLE }}"
+  elsif OS.linux?
+    if Hardware::CPU.intel?
+      url "https://github.com/jmgilman/vaultssh/releases/download/{{ VERSION }}/x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "{{ SHA256_LINUX }}"
+    end
+  end
+
+  def install
+    bin.install "vssh"
+  end
+end
