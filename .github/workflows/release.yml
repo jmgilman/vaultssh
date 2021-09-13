@@ -61,8 +61,8 @@ jobs:
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
-            *.zip
-            *.tar.gz
+            release/*.zip
+            release/*.tar.gz
       - name: Create release with artifact
         uses: softprops/action-gh-release@v1
         with:
