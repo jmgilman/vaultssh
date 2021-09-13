@@ -39,7 +39,7 @@ jobs:
         run: tar -czvf target/${{ matrix.job.target }}.tar.gz target/${{ matrix.job.target }}/release/vssh
       - name: Zip build result
         if: startsWith(matrix.job.os, 'windows')
-        run: zip -r target/${{ matrix.job.target }}.zip target/${{ matrix.job.target }}/release/vssh.exe
+        run: 7z a -tzip target/${{ matrix.job.target }}.zip target/${{ matrix.job.target }}/release/vssh.exe
       - name: Upload build result as artifact
         uses: actions/upload-artifact@v2
         with:
