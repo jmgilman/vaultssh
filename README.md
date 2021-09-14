@@ -24,7 +24,16 @@ therefore compatible with all standard ssh flags.
 cargo install vaultssh
 ```
 
+Or install using `brew`:
+
+```
+brew tap jmgilman/homebrew-apps
+brew install vaultssh
+```
+
 ## Usage
+
+![example](example.gif)
 
 ```
 $> vssh --help
