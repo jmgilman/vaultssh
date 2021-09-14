@@ -246,8 +246,11 @@ async fn gen_cert(config: &Config, console: &impl Console) -> Result<()> {
     // Attempt to load token from file if needed
     let token = match config.token.is_none() {
         true => {
-            console.neutral("Using token from ~/.vault-token...");
-            VaultClient::token_from_file().unwrap_or_else(|_| "".to_string())
+            let token = VaultClient::token_from_file().unwrap_or_else(|_| "".to_string());
+            if !token.is_empty() {
+                console.neutral("Using token from ~/.vault-token...");
+            }
+            token
         }
         false => config.token.as_ref().unwrap().clone(),
     };
@@ -274,9 +277,9 @@ async fn gen_cert(config: &Config, console: &impl Console) -> Result<()> {
         }
 
         console.success("Login success!");
+    } else {
+        console.success("Valid token found.");
     }
-
-    console.success("Valid token found.");
 
     // Create certificate
     console.neutral("Generating new certificate...");
