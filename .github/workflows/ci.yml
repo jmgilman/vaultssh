@@ -15,6 +15,11 @@ on:
 
 name: CI
 
+env:
+  BREW_REPO: jmgilman/homebrew-apps
+  RUST_TOOLCHAIN: stable
+  TOOLCHAIN_PROFILE: minimal
+
 jobs:
   check:
     name: Run cargo check
@@ -22,14 +27,20 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-
-      - name: Install stable toolchain
+      - name: Load cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
-          toolchain: stable
+          profile: ${{ env.TOOLCHAIN_PROFILE }}
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           override: true
-
       - name: Run cargo check
         uses: actions-rs/cargo@v1
         with:
@@ -41,41 +52,51 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-
-      - name: Install stable toolchain
+      - name: Load cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
-          toolchain: stable
+          profile: ${{ env.TOOLCHAIN_PROFILE }}
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           override: true
           components: rustfmt, clippy
-
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
-
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
-
   test:
     name: Run cargo test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-
-      - name: Install stable toolchain
+      - name: Load cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
-          toolchain: stable
+          profile: ${{ env.TOOLCHAIN_PROFILE }}
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           override: true
-
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         env:
@@ -88,10 +109,13 @@ jobs:
     if: startsWith(github.event.ref, 'refs/tags/v')
     needs: [test, lints, check]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
         with:
-            toolchain: stable
+            profile: ${{ env.TOOLCHAIN_PROFILE }}
+            toolchain: ${{ env.RUST_TOOLCHAIN }}
             override: true
       - uses: katyo/publish-crates@v1
         with:
@@ -111,13 +135,13 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-      - name: Install stable toolchain
+      - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           target: ${{ matrix.job.target }}
           override: true
-          profile: minimal
+          profile: ${{ env.TOOLCHAIN_PROFILE }}
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -170,12 +194,15 @@ jobs:
         uses: actions/checkout@v2
       - name: Set version
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Set repo name
+        id: repo-name
+        run: echo "::set-output name=value::$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')"
       - name: Fetch checksum file
         uses: dsaltares/fetch-gh-release-asset@master
         with:
-          file: "checksum.txt"
-          target: "checksum.txt"
-          version: "tags/${{ env.RELEASE_VERSION }}"
+          file: checksum.txt
+          target: checksum.txt
+          version: tags/${{ env.RELEASE_VERSION }}
       - name: Fetch checksums
         id: checksums
         run: |
@@ -188,7 +215,7 @@ jobs:
         uses: cuchi/jinja2-action@v1.2.0
         with:
           template: ci/brew.rb.j2
-          output_file: vaultssh.rb
+          output_file: ${{ steps.repo-name.outputs.value }}.rb
           strict: true
           variables: |
             SHA256_APPLE=${{ steps.checksums.outputs.sha256_apple }}
@@ -197,22 +224,22 @@ jobs:
       - name: Encode formula with base64
         id: encode
         run: |
-          BASE64=$(base64 -w 0 vaultssh.rb)
+          BASE64=$(base64 -w 0 ${{ steps.repo-name.outputs.value }}.rb)
           echo "::set-output name=base64::$BASE64"
       - name: Dispatch update to homebrew tap repository
         uses: peter-evans/repository-dispatch@v1
         with:
-          token: "${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}"
-          repository: jmgilman/homebrew-apps
+          token: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          repository: ${{ env.BREW_REPO }}
           event-type: update
           client-payload: |
             {
               "content": "${{ steps.encode.outputs.base64 }}",
-              "name": "vaultssh",
+              "name": "${{ steps.repo-name.outputs.value }}",
               "version": "${{ env.RELEASE_VERSION }}"
             }
       - name: Upload formula as artifact
         uses: actions/upload-artifact@v2
         with:
           name: formula
-          path: vaultssh.rb
+          path: ${{ steps.repo-name.outputs.value }}.rb
