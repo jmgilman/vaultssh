@@ -36,15 +36,22 @@ jobs:
           args: --release --target=${{ matrix.job.target }}
       - name: Archive build result
         if: startsWith(matrix.job.os, 'ubuntu') || startsWith(matrix.job.os, 'macos')
-        run: tar -czvf target/${{ matrix.job.target }}.tar.gz target/${{ matrix.job.target }}/release/vssh
+        run: tar -C target/${{ matrix.job.target }}/release -czvf ${{ GITHUB_WORKSPACE }}/target/${{ matrix.job.target }}.tar.gz vssh
       - name: Zip build result
         if: startsWith(matrix.job.os, 'windows')
-        run: 7z a -tzip target/${{ matrix.job.target }}.zip target/${{ matrix.job.target }}/release/vssh.exe
+        run: 7z a target/${{ matrix.job.target }}.zip ./target/${{ matrix.job.target }}/release/vssh.exe
       - name: Upload build result as artifact
+        if: startsWith(matrix.job.os, 'ubuntu') || startsWith(matrix.job.os, 'macos')
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
-          path: target/${{ matrix.job.target }}.*
+          path: target/${{ matrix.job.target }}.tar.gz
+      - name: Upload build result as artifact
+        if: startsWith(matrix.job.os, 'windows')
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: target/${{ matrix.job.target }}.zip
   release:
     name: Create release
     runs-on: ubuntu-20.04
